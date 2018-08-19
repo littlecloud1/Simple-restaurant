@@ -45,6 +45,8 @@ class webServerHandler(BaseHTTPRequestHandler):
                 items = session.query(Restaurant).all()
                 for i in items:
                     msg += str(i.name) + '<br>'
+                    msg += '<a href="/' + i.name + '">edit</a><br>'
+                    msg += '<a href="/' + i.name + '">delete</a><br>'
                 msg +="</body></html>"
                 self.wfile.write(msg.encode())
                 return   
