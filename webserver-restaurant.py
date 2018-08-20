@@ -74,6 +74,29 @@ class webServerHandler(BaseHTTPRequestHandler):
                 self.wfile.write(edit_form.encode())
                 return
                 
+            if self.path.endswith("/delete"):
+                #retreive id from database
+                rest_id = self.path.split('/')[2]
+                
+                if rest_id == "":
+                    self.send_error(404, 'wrong ID')
+                item = session.query(Restaurant).filter_by(id = rest_id)[0]
+                
+                
+                self.send_response(200)
+                self.send_header('Content-type','text/html')
+                self.end_headers()
+                
+                edit_form = ""
+                edit_form += "<form method='POST' enctype='multipart/form-data'"
+                edit_form += "action='/restaurants/{}/delete'>".format(item.id)
+                edit_form += '<h2>Are you sure you want to delete {}?</h2>'.format(item.name)
+                edit_form += "<input type='submit' value='Delete'> </form>"
+                edit_form += "</body></html>"
+                
+                self.wfile.write(edit_form.encode())
+                return
+                
         except IOError:
             self.send_error(404, 'File Not Found: %s' % self.path)
         
@@ -110,6 +133,7 @@ class webServerHandler(BaseHTTPRequestHandler):
                     output += " <h2> Okay, A new Restaurant added : </h2>"
                     output += "<h1> %s </h1>" % messagecontent[0].decode()
                     output += restaurant_form
+                    output += "<a href='/restaurants'>Back</a>"
                     output += "</body></html>"
                     
                     self.wfile.write(output.encode())
@@ -140,16 +164,37 @@ class webServerHandler(BaseHTTPRequestHandler):
                     output += "<html><body>"
                     output += " <h2> Okay, {} renamed as: </h2>".format(oldname)
                     output += "<h1> %s </h1>" % messagecontent[0].decode()
-                    edit_form += "<form method='POST' enctype='multipart/form-data'"
-                    edit_form += "action='/restaurants/{}/edit'>".format(item.id)
-                    edit_form += '<h2>{}</h2>'.format(item.name)
-                    edit_form += "<input name='newRestaurantName' type='text'"
-                    edit_form += "placeholder='{}' >".format(item.name)
-                    edit_form += "<input type='submit' value='Rename'> </form>"
-                    edit_form += "</body></html>"
+                    output += "<form method='POST' enctype='multipart/form-data'"
+                    output += "action='/restaurants/{}/edit'>".format(item.id)
+                    output += "<input name='newRestaurantName' type='text'"
+                    output += "placeholder='{}' >".format(item.name)
+                    output += "<input type='submit' value='Rename'> </form>"
+                    output += "<a href='/restaurants'>Back</a>"
+                    output += "</body></html>"
                     
                     self.wfile.write(output.encode())
                     return
+                    
+                    
+            if self.path.endswith("/delete"):
+                self.send_response(301)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                
+                rest_id = self.path.split('/')[2]
+                item = session.query(Restaurant).filter_by(id = rest_id)[0]
+                name = item.name
+                
+                session.delete(item)
+                session.commit()
+                
+                output = ""
+                output += "<html><body>"
+                output += " <h2> Okay, {} has been deleted. </h2>".format(name)
+                output += "<a href='/restaurants'>Back</a>"
+                output += "</body></html>"
+                self.wfile.write(output.encode())
+                return
         except:
             raise
             
