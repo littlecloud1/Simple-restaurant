@@ -30,6 +30,7 @@ class webServerHandler(BaseHTTPRequestHandler):
              
                 msg = ""
                 msg += restaurant_form
+                msg += "<a href='/restaurants'>Back</a>"
                 msg +="</body></html>"
                 self.wfile.write(msg.encode())
                 return   
@@ -40,11 +41,13 @@ class webServerHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 
                 msg = ""
+                msg = "<a href='/restaurants/new'>Add new restaurant</a><br><br>"
                 items = session.query(Restaurant).all()
                 for i in items:
                     msg += i.name + '<br>'
                     msg += '<a href="/restaurants/' + str(i.id) + '/edit">edit</a><br>'
                     msg += '<a href="/restaurants/' + str(i.id) + '/delete">delete</a><br><br>'
+                msg += "<a href='/restaurants'>Back</a>"
                 msg +="</body></html>"
                 self.wfile.write(msg.encode())
                 return   
@@ -69,6 +72,7 @@ class webServerHandler(BaseHTTPRequestHandler):
                 edit_form += "<input name='newRestaurantName' type='text'"
                 edit_form += "placeholder='{}' >".format(item.name)
                 edit_form += "<input type='submit' value='Rename'> </form>"
+                edit_form += "<a href='/restaurants'>Back</a>"
                 edit_form += "</body></html>"
                 
                 self.wfile.write(edit_form.encode())
@@ -92,6 +96,7 @@ class webServerHandler(BaseHTTPRequestHandler):
                 edit_form += "action='/restaurants/{}/delete'>".format(item.id)
                 edit_form += '<h2>Are you sure you want to delete {}?</h2>'.format(item.name)
                 edit_form += "<input type='submit' value='Delete'> </form>"
+                edit_form += "<a href='/restaurants'>Back</a>"
                 edit_form += "</body></html>"
                 
                 self.wfile.write(edit_form.encode())
