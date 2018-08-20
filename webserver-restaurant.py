@@ -4,6 +4,20 @@ from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Restaurant, MenuItem
 import cgi
 
+#connect to database
+engine = create_engine('sqlite:///restaurantmenu.db')
+Base.metadata.bind=engine
+DBSession = sessionmaker(bind = engine)
+session = DBSession()
+         
+restaurant_form = '''
+                        <form method='POST' enctype='multipart/form-data' action='/restaurant/new'>
+                        <h2>Make a new restaurant</h2>
+                        <input name="newRestaurantName" type="text" 
+                        placeholder="New Restaurant Name" >
+                        <input type="submit" value="Create"> </form>
+                '''  
+
 class webServerHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
@@ -31,22 +45,29 @@ class webServerHandler(BaseHTTPRequestHandler):
                 self.wfile.write(msg.encode())
                 return
                 
+            if self.path.endswith("/restaurant/new"):
+                self.send_response(200)
+                self.send_header('Content-type','text/html')
+                self.end_headers()
+                
+
+                msg = ""
+                msg += restaurant_form
+                msg +="</body></html>"
+                self.wfile.write(msg.encode())
+                return   
+            
             if self.path.endswith("/restaurant"):
                 self.send_response(200)
                 self.send_header('Content-type','text/html')
                 self.end_headers()
                 
-                engine = create_engine('sqlite:///restaurantmenu.db')
-                Base.metadata.bind=engine
-                DBSession = sessionmaker(bind = engine)
-                session = DBSession()
-                
                 msg = ""
                 items = session.query(Restaurant).all()
                 for i in items:
-                    msg += str(i.name) + '<br>'
-                    msg += '<a href="/' + i.name + '">edit</a><br>'
-                    msg += '<a href="/' + i.name + '">delete</a><br>'
+                    msg += i.name + '<br>'
+                    msg += '<a href="/' + str(i.id) + '">edit</a><br>'
+                    msg += '<a href="/' + str(i.id) + '">delete</a><br><br>'
                 msg +="</body></html>"
                 self.wfile.write(msg.encode())
                 return   
@@ -59,30 +80,31 @@ class webServerHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            self.send_response(301)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            ctype, pdict = cgi.parse_header(self.headers['content-type'])
-            print(ctype)
-            print(pdict)
-            # boundary data needs to be encoded in a binary format
-            pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+            if self.path.endswith("/restaurant/new"):
+                self.send_response(301)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                ctype, pdict = cgi.parse_header(self.headers['content-type'])
 
-            if ctype == 'multipart/form-data':
-                fields = cgi.parse_multipart(self.rfile, pdict)
-                print("Fields value is", fields)
-                messagecontent = fields.get('message')
+                # boundary data needs to be encoded in a binary format
+                pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+
+                if ctype == 'multipart/form-data':
+                    fields = cgi.parse_multipart(self.rfile, pdict)
+                    messagecontent = fields.get('newRestaurantName')
                 
-            print(messagecontent)
-            output = ""
-            output += "<html><body>"
-            output += " <h2> Okay, how about this: </h2>"
-            output += "<h1> %s </h1>" % messagecontent[0].decode()
-            output += '''<form method='POST' enctype='multipart/form-data' action='/hello'><h2>What would you like me to say?</h2><input name="message" type="text" ><input type="submit" value="Submit"> </form>'''
-            output += "</body></html>"
-            
-            self.wfile.write(output.encode())
-            print(output)
+                newRestaurant = Restaurant(name = messagecontent[0].decode())
+                session.add(newRestaurant)
+                session.commit()
+                output = ""
+                output += "<html><body>"
+                output += " <h2> Okay, A new Restaurant added : </h2>"
+                output += "<h1> %s </h1>" % messagecontent[0].decode()
+                output += restaurant_form
+                output += "</body></html>"
+                
+                self.wfile.write(output.encode())
+                print(output)
             
         except:
             raise
